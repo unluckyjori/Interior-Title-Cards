@@ -6,16 +6,22 @@ using InteriorTitleCards.Config;
 
 namespace InteriorTitleCards
 {
-    [BepInPlugin("com.github.interiortitlecards", "Interior Title Cards", "1.0.0")]
+    [BepInPlugin(TitleCardConstants.PluginGuid, "Interior Title Cards", "1.0.0")]
     public class Plugin : BaseUnityPlugin
     {
+        #region Private Fields
+        
         internal static Plugin Instance;
         internal static ManualLogSource Log;
         
         private Harmony _harmony;
         private ConfigManager configManager;
         private TitleCardManager titleCardManager;
+        
+        #endregion
 
+        #region Unity Lifecycle Methods
+        
         private void Awake()
         {
             Instance = this;
@@ -29,7 +35,7 @@ namespace InteriorTitleCards
             titleCardManager = new TitleCardManager(Log, configManager);
 
             // Apply Harmony patches
-            _harmony = new Harmony("com.github.interiortitlecards");
+            _harmony = new Harmony(TitleCardConstants.PluginGuid);
             _harmony.PatchAll();
             Log.LogInfo("Harmony patches applied");
         }
@@ -37,27 +43,33 @@ namespace InteriorTitleCards
         private void Start()
         {
             // Initialize configs after LethalLevelLoader has loaded its content
-            configManager.Initialize();
+            configManager?.Initialize();
         }
+        
+        #endregion
+        
+        #region Internal Methods
         
         internal void InitializeTitleCard()
         {
-            titleCardManager.CreateTitleCard();
+            titleCardManager?.CreateTitleCard();
         }
         
         internal void OnPlayerEnterFacility()
         {
-            titleCardManager.OnEnterFacility();
+            titleCardManager?.OnEnterFacility();
         }
         
         internal void OnPlayerExitFacility()
         {
-            titleCardManager.OnExitFacility();
+            titleCardManager?.OnExitFacility();
         }
         
         internal void ResetTitleCard()
         {
-            titleCardManager.ResetTitleCard();
+            titleCardManager?.ResetTitleCard();
         }
+        
+        #endregion
     }
 }

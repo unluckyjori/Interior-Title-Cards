@@ -2,6 +2,9 @@ using HarmonyLib;
 
 namespace InteriorTitleCards.Patches
 {
+    /// <summary>
+    /// Harmony patches for StartOfRound to handle title card state resets.
+    /// </summary>
     [HarmonyPatch(typeof(StartOfRound))]
     public class StartOfRoundPatches
     {
@@ -11,7 +14,7 @@ namespace InteriorTitleCards.Patches
         {
             // Reset the title card when the ship doors open (landing on a moon)
             Plugin.Log.LogInfo("Ship doors opening - resetting title card state");
-            Plugin.Instance.ResetTitleCard();
+            Plugin.Instance?.ResetTitleCard();
         }
         
         [HarmonyPostfix]
@@ -20,7 +23,7 @@ namespace InteriorTitleCards.Patches
         {
             // Also reset when the ship leaves
             Plugin.Log.LogInfo("Ship leaving - resetting title card state");
-            Plugin.Instance.ResetTitleCard();
+            Plugin.Instance?.ResetTitleCard();
         }
     }
 }

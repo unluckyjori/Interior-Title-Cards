@@ -7,8 +7,13 @@ using UnityEngine;
 
 namespace InteriorTitleCards.Components
 {
+    /// <summary>
+    /// Manages the creation, display, and behavior of the interior title card UI.
+    /// </summary>
     public class TitleCardManager
     {
+        #region Private Fields
+        
         private readonly ManualLogSource logger;
         private readonly ConfigManager configManager;
         
@@ -19,11 +24,19 @@ namespace InteriorTitleCards.Components
         private HUDManager hudManager;
         private Coroutine hideCardCoroutine;
         
+        #endregion
+        
+        #region Constructor
+        
         public TitleCardManager(ManualLogSource logger, ConfigManager configManager)
         {
             this.logger = logger;
             this.configManager = configManager;
         }
+        
+        #endregion
+        
+        #region Public Methods
         
         public void CreateTitleCard()
         {
@@ -37,71 +50,85 @@ namespace InteriorTitleCards.Components
             // Add a CanvasRenderer component
             titleCardObject.AddComponent<CanvasRenderer>();
             
-            // Add a RectTransform component and set its properties
-            RectTransform rectTransform = titleCardObject.AddComponent<RectTransform>();
-            rectTransform.sizeDelta = new Vector2(400f, 120f);
-            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            rectTransform.anchoredPosition = new Vector2(0f, 0f); // Center of screen
+            // Setup main title card RectTransform
+            SetupRectTransform(
+                titleCardObject, 
+                new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.CardHeight), 
+                Vector2.zero
+            );
             
             // Create container for the two text lines
             GameObject container = new GameObject("TitleCardContainer");
             container.transform.SetParent(titleCardObject.transform, false);
             
-            // Add a RectTransform component to the container
-            RectTransform containerRectTransform = container.AddComponent<RectTransform>();
-            containerRectTransform.sizeDelta = new Vector2(400f, 120f);
-            containerRectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            containerRectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            containerRectTransform.pivot = new Vector2(0.5f, 0.5f);
-            containerRectTransform.anchoredPosition = Vector2.zero;
+            // Setup container RectTransform
+            SetupRectTransform(
+                container,
+                new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.CardHeight),
+                Vector2.zero
+            );
             
             // Create "NOW ENTERING..." text
             GameObject titleTextObject = new GameObject("TitleText");
             titleTextObject.transform.SetParent(container.transform, false);
             
-            RectTransform titleTextRectTransform = titleTextObject.AddComponent<RectTransform>();
-            titleTextRectTransform.sizeDelta = new Vector2(400f, 40f);
-            titleTextRectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            titleTextRectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            titleTextRectTransform.pivot = new Vector2(0.5f, 0.5f);
-            titleTextRectTransform.anchoredPosition = new Vector2(0f, 20f);
+            SetupRectTransform(
+                titleTextObject,
+                new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.TextHeight),
+                new Vector2(0f, TitleCardConstants.TopTextOffset)
+            );
             
             titleCardText = titleTextObject.AddComponent<TextMeshProUGUI>();
             titleCardText.text = configManager.CustomTopText;
-            titleCardText.fontSize = 20;
+            titleCardText.fontSize = TitleCardConstants.TopTextFontSize;
             titleCardText.alignment = TextAlignmentOptions.Center;
-            titleCardText.color = configManager.TitleColor;
-            titleCardText.fontStyle = (configManager.TopTextFontWeight >= 700) ? FontStyles.Bold : FontStyles.Normal;
+            titleCardText.fontStyle = (configManager.TopTextFontWeight >= TitleCardConstants.DefaultFontWeightBold) ? FontStyles.Bold : FontStyles.Normal;
             titleCardText.enableWordWrapping = false;
             
             // Create interior name text
             GameObject interiorTextObject = new GameObject("InteriorNameText");
             interiorTextObject.transform.SetParent(container.transform, false);
             
-            RectTransform interiorTextRectTransform = interiorTextObject.AddComponent<RectTransform>();
-            interiorTextRectTransform.sizeDelta = new Vector2(400f, 40f);
-            interiorTextRectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            interiorTextRectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            interiorTextRectTransform.pivot = new Vector2(0.5f, 0.5f);
-            interiorTextRectTransform.anchoredPosition = new Vector2(0f, -20f);
+            SetupRectTransform(
+                interiorTextObject,
+                new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.TextHeight),
+                new Vector2(0f, TitleCardConstants.BottomTextOffset)
+            );
             
             interiorNameText = interiorTextObject.AddComponent<TextMeshProUGUI>();
             interiorNameText.text = "FACILITY";
-            interiorNameText.fontSize = 28;
+            interiorNameText.fontSize = TitleCardConstants.BottomTextFontSize;
             interiorNameText.alignment = TextAlignmentOptions.Center;
-            interiorNameText.color = configManager.TitleColor;
-            interiorNameText.fontStyle = (configManager.InteriorTextFontWeight >= 700) ? FontStyles.Bold : FontStyles.Normal;
+            interiorNameText.fontStyle = (configManager.InteriorTextFontWeight >= TitleCardConstants.DefaultFontWeightBold) ? FontStyles.Bold : FontStyles.Normal;
             interiorNameText.enableWordWrapping = false;
             
             // Hide the title card by default
             titleCardObject.SetActive(false);
         }
         
+        /// <summary>
+        /// Sets up a RectTransform with standardized center anchoring and positioning.
+        /// </summary>
+        /// <param name="gameObject">The GameObject to add the RectTransform to.</param>
+        /// <param name="sizeDelta">The size of the RectTransform.</param>
+        /// <param name="anchoredPosition">The anchored position of the RectTransform.</param>
+        /// <returns>The configured RectTransform.</returns>
+        private RectTransform SetupRectTransform(GameObject gameObject, Vector2 sizeDelta, Vector2 anchoredPosition)
+        {
+            RectTransform rectTransform = gameObject.AddComponent<RectTransform>();
+            rectTransform.sizeDelta = sizeDelta;
+            rectTransform.anchorMin = new Vector2(TitleCardConstants.CenterAnchor, TitleCardConstants.CenterAnchor);
+            rectTransform.anchorMax = new Vector2(TitleCardConstants.CenterAnchor, TitleCardConstants.CenterAnchor);
+            rectTransform.pivot = new Vector2(TitleCardConstants.CenterAnchor, TitleCardConstants.CenterAnchor);
+            rectTransform.anchoredPosition = anchoredPosition;
+            return rectTransform;
+        }
+        
+        #endregion
+        
         public void OnEnterFacility()
         {
-            configManager.LogDebug("OnEnterFacility called");
+            configManager.LogDebug($"{nameof(OnEnterFacility)} called");
             
             if (hasShownCard) 
             {
@@ -110,8 +137,7 @@ namespace InteriorTitleCards.Components
             }
             
             // Cache references
-            if (hudManager == null)
-                hudManager = HUDManager.Instance;
+            hudManager ??= HUDManager.Instance;
                 
             if (hudManager == null)
             {
@@ -149,7 +175,7 @@ namespace InteriorTitleCards.Components
         
         public void ResetTitleCard()
         {
-            configManager.LogDebug("ResetTitleCard called - resetting hasShownCard flag");
+            configManager.LogDebug($"{nameof(ResetTitleCard)} called - resetting hasShownCard flag");
             hasShownCard = false;
         }
         
@@ -159,19 +185,18 @@ namespace InteriorTitleCards.Components
                 return;
                 
             // Update text colors from config
-            Color titleColor = configManager.TitleColor;
-            titleCardText.color = titleColor;
-            interiorNameText.color = titleColor;
+            titleCardText.color = configManager.TopTextColor;
+            interiorNameText.color = configManager.InteriorTextColor;
                 
             interiorNameText.text = interiorName;
             titleCardObject.SetActive(true);
             
             // Cancel any existing hide coroutine before starting a new one
             if (hideCardCoroutine != null)
-                hudManager.StopCoroutine(hideCardCoroutine);
+                hudManager?.StopCoroutine(hideCardCoroutine);
                 
-            // Hide the title card after 3 seconds
-            hideCardCoroutine = hudManager.StartCoroutine(HideTitleCardAfterDelay(3f));
+            // Hide the title card after the configured duration
+            hideCardCoroutine = hudManager?.StartCoroutine(HideTitleCardAfterDelay(configManager.DisplayDuration));
         }
         
         private IEnumerator HideTitleCardAfterDelay(float delay)

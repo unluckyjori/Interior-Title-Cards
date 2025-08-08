@@ -1,6 +1,7 @@
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using InteriorTitleCards.Components;
 using LethalLevelLoader;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,37 +11,79 @@ using UnityEngine;
 
 namespace InteriorTitleCards.Config
 {
+    /// <summary>
+    /// Manages configuration loading and provides access to configuration settings with fallback values.
+    /// </summary>
     public class ConfigManager
     {
+        #region Private Fields
+        
         private readonly ConfigFile config;
         private readonly ManualLogSource logger;
         private readonly Plugin plugin;
         
         // Config entries
-        private ConfigEntry<string> titleColorConfig;
+        private ConfigEntry<string> topTextColorConfig;
+        private ConfigEntry<string> interiorTextColorConfig;
         private ConfigEntry<bool> debugLoggingConfig;
         private ConfigEntry<string> customTopTextConfig;
         private ConfigEntry<int> topTextFontWeightConfig;
         private ConfigEntry<int> interiorTextFontWeightConfig;
+        private ConfigEntry<float> displayDurationConfig;
         private Dictionary<string, ConfigEntry<string>> interiorNameOverrideConfigs = new Dictionary<string, ConfigEntry<string>>();
+        
+        // Mapping from variant names to base names for facility variants
+        private Dictionary<string, string> variantToBaseMapping = new Dictionary<string, string>
+        {
+            { "Facility (Level1Flow)", "Facility" },
+            { "Facility (Level1Flow3Exits)", "Facility" },
+            { "Facility (Level1FlowExtraLarge)", "Facility" },
+            { "Haunted Mansion (Level2Flow)", "Haunted Mansion" },
+            { "Mineshaft (Level3Flow)", "Mineshaft" }
+        };
         
         private int retryAttempt = 0;
         
-                public Color TitleColor
+        #endregion
+
+        #region Public Properties
+        
+        public Color TitleColor
         {
             get
             {
-                if (titleColorConfig != null && ColorUtility.TryParseHtmlString(titleColorConfig.Value, out Color color))
-                {
-                    return color;
-                }
-                return Color.white; // Default color if parsing fails
+                // Fallback to orange if no text colors are available
+                return ParseColorFromString(TitleCardConstants.DefaultTitleColor, Color.white);
             }
         }
+        
+        public Color TopTextColor
+        {
+            get
+            {
+                Color defaultColor = ParseColorFromString(TitleCardConstants.DefaultTopTextColor, ParseColorFromString(TitleCardConstants.DefaultTitleColor, Color.white));
+                return ParseColorFromConfig(topTextColorConfig, defaultColor);
+            }
+        }
+        
+        public Color InteriorTextColor
+        {
+            get
+            {
+                Color defaultColor = ParseColorFromString(TitleCardConstants.DefaultInteriorTextColor, ParseColorFromString(TitleCardConstants.DefaultTitleColor, Color.white));
+                return ParseColorFromConfig(interiorTextColorConfig, defaultColor);
+            }
+        }
+        
         public bool DebugLoggingEnabled => debugLoggingConfig?.Value ?? false;
         public string CustomTopText => customTopTextConfig?.Value ?? "NOW ENTERING...";
-        public int TopTextFontWeight => topTextFontWeightConfig?.Value ?? 400; // Default to Normal
-        public int InteriorTextFontWeight => interiorTextFontWeightConfig?.Value ?? 700; // Default to Bold
+        public int TopTextFontWeight => topTextFontWeightConfig?.Value ?? TitleCardConstants.DefaultFontWeightNormal;
+        public int InteriorTextFontWeight => interiorTextFontWeightConfig?.Value ?? TitleCardConstants.DefaultFontWeightBold;
+        public float DisplayDuration => displayDurationConfig?.Value ?? TitleCardConstants.DefaultDisplayDuration;
+        
+        #endregion
+
+        #region Constructor
         
         public ConfigManager(ConfigFile config, ManualLogSource logger, Plugin plugin)
         {
@@ -49,28 +92,112 @@ namespace InteriorTitleCards.Config
             this.plugin = plugin;
         }
         
+        #endregion
+        
+        #region Public Methods
+        
         public void Initialize()
         {
+            LogDebug($"{nameof(Initialize)} called - starting config initialization");
             // Initialize configs after LethalLevelLoader has loaded its content
             plugin.StartCoroutine(InitializeConfigsDelayed());
         }
         
+        public string GetInteriorNameOverride(string dungeonName)
+        {
+            LogDebug($"{nameof(GetInteriorNameOverride)} called with dungeon: {dungeonName}");
+            
+            // Check if this dungeon name has a base name mapping (for facility variants)
+            string baseName = dungeonName;
+            if (variantToBaseMapping.ContainsKey(dungeonName))
+            {
+                baseName = variantToBaseMapping[dungeonName];
+                LogDebug($"Mapped variant '{dungeonName}' to base name '{baseName}'");
+            }
+            
+            // Look up config using the base name (or original name if no mapping)
+            if (interiorNameOverrideConfigs.ContainsKey(baseName))
+            {
+                string overrideName = interiorNameOverrideConfigs[baseName].Value;
+                if (!string.IsNullOrEmpty(overrideName))
+                {
+                    LogDebug($"Found override '{overrideName}' for base name '{baseName}'");
+                    return overrideName;
+                }
+            }
+            
+            LogDebug($"No override found for '{baseName}', using original name");
+            return dungeonName;
+        }
+        
+        public void LogDebug(string message)
+        {
+            if (DebugLoggingEnabled)
+            {
+                logger.LogInfo($"[DEBUG] {message}");
+            }
+        }
+        
+        #endregion
+        
+        #region Private Methods
+        
+        /// <summary>
+        /// Parses a color from a config entry with fallback to default color.
+        /// </summary>
+        /// <param name="colorConfig">The config entry containing the color string.</param>
+        /// <param name="defaultColor">The default color to use if parsing fails.</param>
+        /// <returns>The parsed color or default color.</returns>
+        private Color ParseColorFromConfig(ConfigEntry<string> colorConfig, Color defaultColor)
+        {
+            if (colorConfig != null && !string.IsNullOrEmpty(colorConfig.Value) && ColorUtility.TryParseHtmlString(colorConfig.Value, out Color color))
+            {
+                return color;
+            }
+            return defaultColor;
+        }
+        
+        /// <summary>
+        /// Parses a color from a string with fallback to default color.
+        /// </summary>
+        /// <param name="colorString">The color string to parse.</param>
+        /// <param name="defaultColor">The default color to use if parsing fails.</param>
+        /// <returns>The parsed color or default color.</returns>
+        private Color ParseColorFromString(string colorString, Color defaultColor)
+        {
+            if (!string.IsNullOrEmpty(colorString) && ColorUtility.TryParseHtmlString(colorString, out Color color))
+            {
+                return color;
+            }
+            return defaultColor;
+        }
+        
         private IEnumerator InitializeConfigsDelayed()
         {
-            // Wait a few seconds for LethalLevelLoader to initialize
-            yield return new WaitForSeconds(5f);
+            // Wait for LethalLevelLoader to initialize
+            yield return new WaitForSeconds(TitleCardConstants.ConfigInitializationDelay);
             
             BindConfig();
         }
         
         private void BindConfig()
         {
+            LogDebug($"{nameof(BindConfig)} called - binding configuration entries");
+            
             // Bind config entries
-            titleColorConfig = config.Bind(
+
+            topTextColorConfig = config.Bind(
                 "Style Settings",
-                "TitleColor",
-                "#fe6001",
-                "Color of the title card text in hex format (e.g., #fe6001)"
+                "TopTextColor",
+                TitleCardConstants.DefaultTopTextColor,
+                "Color of the top text in hex format (e.g., #fe6001). Leave blank to use the default orange color"
+            );
+
+            interiorTextColorConfig = config.Bind(
+                "Style Settings",
+                "InteriorTextColor",
+                TitleCardConstants.DefaultInteriorTextColor,
+                "Color of the interior name text in hex format (e.g., #fe6001). Leave blank to use the default orange color"
             );
             
             debugLoggingConfig = config.Bind(
@@ -90,15 +217,22 @@ namespace InteriorTitleCards.Config
             topTextFontWeightConfig = config.Bind(
                 "Style Settings",
                 "TopTextFontWeight",
-                400, // Corresponds to FontStyles.Normal
+                TitleCardConstants.DefaultFontWeightNormal,
                 "Font weight (boldness) for the top text (e.g., 400 for normal, 700 for bold)"
             );
 
             interiorTextFontWeightConfig = config.Bind(
                 "Style Settings",
                 "InteriorTextFontWeight",
-                700, // Corresponds to FontStyles.Bold
+                TitleCardConstants.DefaultFontWeightBold,
                 "Font weight (boldness) for the interior name text (e.g., 400 for normal, 700 for bold)"
+            );
+
+            displayDurationConfig = config.Bind(
+                "Style Settings",
+                "DisplayDuration",
+                TitleCardConstants.DefaultDisplayDuration,
+                "How long the title card displays on screen in seconds (e.g., 3.0 for 3 seconds)"
             );
             
             LogDebug("Starting config binding process");
@@ -107,131 +241,180 @@ namespace InteriorTitleCards.Config
             CreateInteriorNameOverrideConfigs();
         }
         
-        public string GetInteriorNameOverride(string dungeonName)
+        /// <summary>
+        /// Creates interior name override configs by trying multiple approaches.
+        /// </summary>
+        private void CreateInteriorNameOverrideConfigs()
         {
-            if (interiorNameOverrideConfigs.ContainsKey(dungeonName))
+            LogDebug($"{nameof(CreateInteriorNameOverrideConfigs)} called");
+            
+            string configPath = GetLethalLevelLoaderConfigPath();
+            if (string.IsNullOrEmpty(configPath))
             {
-                string overrideName = interiorNameOverrideConfigs[dungeonName].Value;
-                if (!string.IsNullOrEmpty(overrideName))
-                {
-                    return overrideName;
-                }
+                LogDebug("Config path not found, trying runtime API approach");
+                CreateInteriorNameOverrideConfigsFromRuntimeAPI();
+                return;
             }
-            return dungeonName;
+            
+            var dungeonNames = ParseDungeonNamesFromConfigFile(configPath);
+            if (dungeonNames.Count == 0)
+            {
+                LogDebug("No dungeons found in config file, trying runtime API approach");
+                CreateInteriorNameOverrideConfigsFromRuntimeAPI();
+                return;
+            }
+            
+            CreateConfigEntriesForDungeons(dungeonNames);
         }
         
-        private void CreateInteriorNameOverrideConfigs()
+        /// <summary>
+        /// Gets the LethalLevelLoader config file path from multiple possible locations.
+        /// </summary>
+        /// <returns>The config file path, or null if not found.</returns>
+        private string GetLethalLevelLoaderConfigPath()
+        {
+            // Try primary BepInEx config path
+            string configPath = Path.Combine(Paths.ConfigPath, "LethalLevelLoader.cfg");
+            LogDebug($"Looking for LethalLevelLoader.cfg at: {configPath}");
+            
+            if (File.Exists(configPath))
+            {
+                LogDebug($"Found LethalLevelLoader.cfg at: {configPath}");
+                return configPath;
+            }
+            
+            // Try alternative path
+            LogDebug("LethalLevelLoader.cfg not found at primary path, trying alternative path");
+            configPath = Path.Combine(Path.GetDirectoryName(Application.dataPath), "BepInEx/config/LethalLevelLoader.cfg");
+            LogDebug($"Looking for LethalLevelLoader.cfg at alternative path: {configPath}");
+            
+            if (File.Exists(configPath))
+            {
+                return configPath;
+            }
+            
+            // Don't use relative path traversal for security reasons
+            LogDebug("LethalLevelLoader.cfg not found at alternative path, skipping Resources directory check for security");
+            
+            return null;
+        }
+        
+        /// <summary>
+        /// Parses dungeon names from the LethalLevelLoader config file.
+        /// </summary>
+        /// <param name="configPath">Path to the config file.</param>
+        /// <returns>Set of unique dungeon names.</returns>
+        private HashSet<string> ParseDungeonNamesFromConfigFile(string configPath)
         {
             try
             {
-                LogDebug("Starting to create interior name override configs by reading LethalLevelLoader.cfg");
-                
-                // Try to read dungeon names from LethalLevelLoader.cfg using proper BepInEx config path
-                string lethalLevelLoaderConfigPath = Path.Combine(Paths.ConfigPath, "LethalLevelLoader.cfg");
-                
-                LogDebug($"Looking for LethalLevelLoader.cfg at: {lethalLevelLoaderConfigPath}");
-                
-                if (!File.Exists(lethalLevelLoaderConfigPath))
-                {
-                    // Try alternative path
-                    LogDebug("LethalLevelLoader.cfg not found at primary path, trying alternative path");
-                    lethalLevelLoaderConfigPath = Path.Combine(Path.GetDirectoryName(Application.dataPath), "BepInEx/config/LethalLevelLoader.cfg");
-                    LogDebug($"Looking for LethalLevelLoader.cfg at alternative path: {lethalLevelLoaderConfigPath}");
-                }
-                
-                if (!File.Exists(lethalLevelLoaderConfigPath))
-                {
-                    // Try Resources directory
-                    LogDebug("LethalLevelLoader.cfg not found at alternative path, trying Resources directory");
-                    lethalLevelLoaderConfigPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "../../Resources/LethalLevelLoader.cfg");
-                    LogDebug($"Looking for LethalLevelLoader.cfg at Resources path: {lethalLevelLoaderConfigPath}");
-                }
-                
-                if (!File.Exists(lethalLevelLoaderConfigPath))
-                {
-                    LogDebug("LethalLevelLoader.cfg not found, trying runtime API approach");
-                    CreateInteriorNameOverrideConfigsFromRuntimeAPI();
-                    return;
-                }
-                
-                LogDebug($"Found LethalLevelLoader.cfg at: {lethalLevelLoaderConfigPath}");
-                
-                string[] lines = File.ReadAllLines(lethalLevelLoaderConfigPath);
+                string[] lines = File.ReadAllLines(configPath);
                 HashSet<string> dungeonNames = new HashSet<string>();
                 
-                // Parse the config file to find dungeon names
                 foreach (string line in lines)
                 {
-                    // Look for lines like "[Custom Dungeon: Art Gallery]"
-                    if (line.StartsWith("[​​​​​​​​​Custom Dungeon:  ") && line.EndsWith("]"))
+                    // Look for lines like "[Custom Dungeon: Art Gallery]" or similar patterns
+                    if (line.StartsWith("[") && line.EndsWith("]"))
                     {
-                        string dungeonName = line.Substring(17, line.Length - 18); // Extract name between brackets
-                        if (!string.IsNullOrEmpty(dungeonName))
+                        string content = line.Substring(1, line.Length - 2); // Remove brackets
+                        LogDebug($"Processing config line: {content}");
+                        
+                        // Check for custom dungeon patterns
+                        if (content.Contains(TitleCardConstants.CustomDungeonPrefix))
                         {
-                            dungeonNames.Add(dungeonName);
-                            LogDebug($"Found custom dungeon: {dungeonName}");
+                            string dungeonName = ExtractDungeonName(content, TitleCardConstants.CustomDungeonPrefix);
+                            if (!string.IsNullOrEmpty(dungeonName))
+                            {
+                                dungeonNames.Add(dungeonName);
+                                LogDebug($"Found custom dungeon: {dungeonName}");
+                            }
                         }
-                    }
-                    // Look for vanilla dungeons too
-                    else if (line.StartsWith("[Vanilla Dungeon:  ") && line.EndsWith("]"))
-                    {
-                        string dungeonName = line.Substring(18, line.Length - 19); // Extract name between brackets
-                        if (!string.IsNullOrEmpty(dungeonName))
+                        
+                        // Check for vanilla dungeon patterns
+                        if (content.Contains(TitleCardConstants.VanillaDungeonPrefix))
                         {
-                            dungeonNames.Add(dungeonName);
-                            LogDebug($"Found vanilla dungeon: {dungeonName}");
+                            string dungeonName = ExtractDungeonName(content, TitleCardConstants.VanillaDungeonPrefix);
+                            if (!string.IsNullOrEmpty(dungeonName))
+                            {
+                                dungeonNames.Add(dungeonName);
+                                LogDebug($"Found vanilla dungeon: {dungeonName}");
+                            }
                         }
                     }
                 }
                 
                 LogDebug($"Found {dungeonNames.Count} total dungeons");
-                
-                // If no dungeons found, try runtime API approach
-                if (dungeonNames.Count == 0)
-                {
-                    LogDebug("No dungeons found in config file, trying runtime API approach");
-                    CreateInteriorNameOverrideConfigsFromRuntimeAPI();
-                    return;
-                }
-                
-                int configEntriesCreated = 0;
-                // Create config entries for each dungeon
-                foreach (string dungeonName in dungeonNames)
-                {
-                    if (!string.IsNullOrEmpty(dungeonName))
-                    {
-                        string configKey = dungeonName.Replace(" ", "_");
-                        
-                        LogDebug($"Processing dungeon: {dungeonName} (Config Key: {configKey})");
-                        
-                        if (!interiorNameOverrideConfigs.ContainsKey(dungeonName))
-                        {
-                            var configEntry = config.Bind(
-                                "Interior Name Overrides",
-                                $"{configKey}_NameOverride",
-                                "",
-                                $"Override name for {dungeonName} interior (leave blank to use default)"
-                            );
-                            interiorNameOverrideConfigs[dungeonName] = configEntry;
-                            configEntriesCreated++;
-                            LogDebug($"Created config entry for: {dungeonName}");
-                        }
-                        else
-                        {
-                            LogDebug($"Config entry already exists for: {dungeonName}");
-                        }
-                    }
-                }
-                
-                LogDebug($"Finished creating {configEntriesCreated} interior name override configs from config file");
+                return dungeonNames;
             }
             catch (System.Exception ex)
             {
-                logger.LogError($"Error creating interior name override configs from config file: {ex.Message}");
-                logger.LogError($"Stack trace: {ex.StackTrace}");
-                LogDebug("Falling back to runtime API approach");
-                CreateInteriorNameOverrideConfigsFromRuntimeAPI();
+                logger.LogError($"Error parsing dungeon names from config file: {ex.Message}");
+                return new HashSet<string>();
             }
+        }
+        
+        /// <summary>
+        /// Extracts dungeon name from config line content.
+        /// </summary>
+        /// <param name="content">The config line content.</param>
+        /// <param name="prefix">The prefix to look for.</param>
+        /// <returns>The extracted dungeon name.</returns>
+        private string ExtractDungeonName(string content, string prefix)
+        {
+            int prefixIndex = content.IndexOf(prefix);
+            if (prefixIndex >= 0)
+            {
+                int index = prefixIndex + prefix.Length;
+                return content.Substring(index).Trim();
+            }
+            return null;
+        }
+        
+        /// <summary>
+        /// Creates config entries for a collection of dungeon names.
+        /// </summary>
+        /// <param name="dungeonNames">Collection of dungeon names.</param>
+        private void CreateConfigEntriesForDungeons(HashSet<string> dungeonNames)
+        {
+            int configEntriesCreated = 0;
+            
+            foreach (string dungeonName in dungeonNames)
+            {
+                if (!string.IsNullOrEmpty(dungeonName))
+                {
+                    // Use base name for facility variants, original name for others
+                    string baseName = dungeonName;
+                    if (variantToBaseMapping.ContainsKey(dungeonName))
+                    {
+                        baseName = variantToBaseMapping[dungeonName];
+                        LogDebug($"Using base name '{baseName}' for variant '{dungeonName}'");
+                    }
+                    
+                    string configKey = baseName.Replace(" ", "_");
+                    
+                    LogDebug($"Processing dungeon: {dungeonName} -> Base: {baseName} (Config Key: {configKey})");
+                    
+                    // Only create config entry if we haven't already created one for this base name
+                    if (!interiorNameOverrideConfigs.ContainsKey(baseName))
+                    {
+                        var configEntry = config.Bind(
+                            "Interior Name Overrides",
+                            $"{configKey}_NameOverride",
+                            "",
+                            $"Override name for {baseName} interior (leave blank to use default)"
+                        );
+                        interiorNameOverrideConfigs[baseName] = configEntry;
+                        configEntriesCreated++;
+                        LogDebug($"Created config entry for: {baseName}");
+                    }
+                    else
+                    {
+                        LogDebug($"Config entry already exists for base name: {baseName}");
+                    }
+                }
+            }
+            
+            LogDebug($"Finished creating {configEntriesCreated} interior name override configs");
         }
         
         private void CreateInteriorNameOverrideConfigsFromRuntimeAPI()
@@ -239,7 +422,7 @@ namespace InteriorTitleCards.Config
             try
             {
                 retryAttempt++;
-                LogDebug($"Starting to create interior name override configs using runtime API (Attempt {retryAttempt})");
+                LogDebug($"{nameof(CreateInteriorNameOverrideConfigsFromRuntimeAPI)} called (Attempt {retryAttempt})");
                 
                 // Check if LethalLevelLoader content is available
                 LogDebug($"PatchedContent.VanillaExtendedDungeonFlows: {(PatchedContent.VanillaExtendedDungeonFlows != null ? "Available" : "NULL")}");
@@ -287,58 +470,32 @@ namespace InteriorTitleCards.Config
                     return;
                 }
                 
-                int configEntriesCreated = 0;
-                // Create config entries for each dungeon
+                var dungeonNames = new HashSet<string>();
                 foreach (ExtendedDungeonFlow dungeonFlow in allDungeonFlows)
                 {
                     if (dungeonFlow != null && !string.IsNullOrEmpty(dungeonFlow.DungeonName))
                     {
-                        string interiorName = dungeonFlow.DungeonName;
-                        string configKey = interiorName.Replace(" ", "_");
-                        
-                        LogDebug($"Processing dungeon: {interiorName} (Config Key: {configKey})");
-                        
-                        if (!interiorNameOverrideConfigs.ContainsKey(interiorName))
-                        {
-                            var configEntry = config.Bind(
-                                "Interior Name Overrides",
-                                $"{configKey}_NameOverride",
-                                "",
-                                $"Override name for {interiorName} interior (leave blank to use default)"
-                            );
-                            interiorNameOverrideConfigs[interiorName] = configEntry;
-                            configEntriesCreated++;
-                            LogDebug($"Created config entry for: {interiorName}");
-                        }
-                        else
-                        {
-                            LogDebug($"Config entry already exists for: {interiorName}");
-                        }
-                    }
-                    else
-                    {
-                        LogDebug($"Skipping invalid dungeon flow: {(dungeonFlow != null ? "Name is null/empty" : "DungeonFlow is null")}");
+                        dungeonNames.Add(dungeonFlow.DungeonName);
                     }
                 }
                 
-                LogDebug($"Finished creating {configEntriesCreated} interior name override configs from runtime API");
+                CreateConfigEntriesForDungeons(dungeonNames);
                 retryAttempt = 0; // Reset retry counter on success
             }
             catch (System.Exception ex)
             {
                 logger.LogError($"Error creating interior name override configs from runtime API: {ex.Message}");
-                logger.LogError($"Stack trace: {ex.StackTrace}");
             }
         }
         
         private IEnumerator RetryConfigGeneration(int attempt = 1)
         {
             // Implement exponential backoff
-            float delay = Mathf.Min(3f * Mathf.Pow(2, attempt - 1), 30f); // Max 30 seconds
-            LogDebug($"Retrying config generation in {delay} seconds... (Attempt {attempt})");
+            float delay = Mathf.Min(TitleCardConstants.ConfigRetryBaseDelay * Mathf.Pow(2, attempt - 1), TitleCardConstants.ConfigRetryMaxDelay);
+            LogDebug($"{nameof(RetryConfigGeneration)} called - retrying in {delay} seconds... (Attempt {attempt})");
             yield return new WaitForSeconds(delay);
             
-            if (attempt < 3)
+            if (attempt < TitleCardConstants.MaxConfigRetryAttempts)
             {
                 CreateInteriorNameOverrideConfigs();
             }
@@ -348,12 +505,6 @@ namespace InteriorTitleCards.Config
             }
         }
         
-        public void LogDebug(string message)
-        {
-            if (DebugLoggingEnabled)
-            {
-                logger.LogInfo($"[DEBUG] {message}");
-            }
-        }
+        #endregion
     }
 }
