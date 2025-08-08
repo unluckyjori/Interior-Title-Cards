@@ -9,12 +9,14 @@ This mod displays a title card when players enter the facility interior area in 
 
 ## Customization
 
-* **Title color**: Choose the color of the title text.
-* **Top text override**: Change the top line of the title card (default is `NOW ENTERING...`).
-* **Top text font weight**: Adjust the thickness of the top text.
-* **Interior text font weight**: Adjust the thickness of the interior name text.
-* **Interior Name Overrides**: Replace default facility names with custom ones.
-* **Enable debug logging**: Turn on detailed logs for testing and troubleshooting.
+- **Top text color**: Choose the color of the top text.
+- **Interior text color**: Choose the color of the interior text.
+- **Display duration**: How long the title card displays on screen in seconds.
+- **Top text override**: Change the top line of the title card (default is `NOW ENTERING...`).
+- **Top text font weight**: Adjust the thickness of the top text.
+- **Interior text font weight**: Adjust the thickness of the interior name text.
+- **Interior Name Overrides**: Replace default facility names with custom ones.
+- **Enable debug logging**: Turn on detailed logs for testing and troubleshooting.
 
 ## Roadmap
 
