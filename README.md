@@ -1,6 +1,6 @@
 # Interior Title Cards Mod for Lethal Company
 
-This mod displays a title card when players enter the facility interior area in Lethal Company.e
+This mod displays a title card when players enter the facility interior area in Lethal Company.
 
 ## Features
 
