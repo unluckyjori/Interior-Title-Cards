@@ -18,7 +18,6 @@ This mod displays a title card when players enter the facility interior area in 
 
 ## Roadmap
 
-- Fix vanilla interiors not getting added
 - Add custom font
 - Allow developers to set custom font or images of interior
 
