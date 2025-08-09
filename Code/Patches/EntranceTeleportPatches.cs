@@ -1,4 +1,5 @@
 using HarmonyLib;
+using GameNetcodeStuff;
 
 namespace InteriorTitleCards.Patches
 {
@@ -21,10 +22,11 @@ namespace InteriorTitleCards.Patches
         
         [HarmonyPostfix]
         [HarmonyPatch("TeleportPlayerClientRpc")]
-        public static void TeleportPlayerClientRpcPostfix(EntranceTeleport __instance)
+        public static void TeleportPlayerClientRpcPostfix(EntranceTeleport __instance, int playerObj)
         {
-            // When player enters the facility (not the ship)
-            if (__instance.isEntranceToBuilding)
+            // Only show title card for the local player who entered the facility
+            if (__instance.isEntranceToBuilding && 
+                __instance.playersManager.allPlayerScripts[playerObj] == GameNetworkManager.Instance.localPlayerController)
             {
                 Plugin.Instance?.OnPlayerEnterFacility();
             }
