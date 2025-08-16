@@ -29,7 +29,18 @@ namespace InteriorTitleCards.Config
         private ConfigEntry<string> customTopTextConfig;
         private ConfigEntry<int> topTextFontWeightConfig;
         private ConfigEntry<int> interiorTextFontWeightConfig;
-        private ConfigEntry<float> displayDurationConfig;
+// Animation timing configs
+        private ConfigEntry<float> topTextDisplayDurationConfig;
+        private ConfigEntry<float> interiorTextDisplayDurationConfig;
+        private ConfigEntry<float> topTextFadeInDurationConfig;
+        private ConfigEntry<float> topTextFadeOutDurationConfig;
+        private ConfigEntry<float> interiorTextFadeInDurationConfig;
+        private ConfigEntry<float> interiorTextFadeOutDurationConfig;
+        
+        // New visual effects configs
+        private ConfigEntry<bool> topTextFadeEnabledConfig;
+        private ConfigEntry<bool> interiorTextFadeEnabledConfig;
+        
         private Dictionary<string, ConfigEntry<string>> interiorNameOverrideConfigs = new Dictionary<string, ConfigEntry<string>>();
         
         // Mapping from variant names to base names for facility variants
@@ -79,7 +90,17 @@ namespace InteriorTitleCards.Config
         public string CustomTopText => customTopTextConfig?.Value ?? "NOW ENTERING...";
         public int TopTextFontWeight => topTextFontWeightConfig?.Value ?? TitleCardConstants.DefaultFontWeightNormal;
         public int InteriorTextFontWeight => interiorTextFontWeightConfig?.Value ?? TitleCardConstants.DefaultFontWeightBold;
-        public float DisplayDuration => displayDurationConfig?.Value ?? TitleCardConstants.DefaultDisplayDuration;
+// Animation timing properties
+        public float TopTextDisplayDuration => topTextDisplayDurationConfig?.Value ?? TitleCardConstants.DefaultDisplayDuration;
+        public float InteriorTextDisplayDuration => interiorTextDisplayDurationConfig?.Value ?? TitleCardConstants.DefaultDisplayDuration;
+        public float TopTextFadeInDuration => topTextFadeInDurationConfig?.Value ?? TitleCardConstants.DefaultFadeDuration;
+        public float TopTextFadeOutDuration => topTextFadeOutDurationConfig?.Value ?? TitleCardConstants.DefaultFadeDuration;
+        public float InteriorTextFadeInDuration => interiorTextFadeInDurationConfig?.Value ?? TitleCardConstants.DefaultFadeDuration;
+        public float InteriorTextFadeOutDuration => interiorTextFadeOutDurationConfig?.Value ?? TitleCardConstants.DefaultFadeDuration;
+        
+        // New visual effects properties
+        public bool TopTextFadeEnabled => topTextFadeEnabledConfig?.Value ?? true;
+        public bool InteriorTextFadeEnabled => interiorTextFadeEnabledConfig?.Value ?? true;
         
         #endregion
 
@@ -199,20 +220,6 @@ namespace InteriorTitleCards.Config
             
             // Bind config entries
 
-            topTextColorConfig = config.Bind(
-                "Style Settings",
-                "TopTextColor",
-                TitleCardConstants.DefaultTopTextColor,
-                "Color of the top text in hex format (e.g., #fe6001). Leave blank to use the default orange color"
-            );
-
-            interiorTextColorConfig = config.Bind(
-                "Style Settings",
-                "InteriorTextColor",
-                TitleCardConstants.DefaultInteriorTextColor,
-                "Color of the interior name text in hex format (e.g., #fe6001). Leave blank to use the default orange color"
-            );
-            
             debugLoggingConfig = config.Bind(
                 "Debug Settings",
                 "EnableDebugLogging",
@@ -221,31 +228,96 @@ namespace InteriorTitleCards.Config
             );
             
             customTopTextConfig = config.Bind(
-                "Style Settings",
+                "Text Appearance",
                 "Top text override",
                 "NOW ENTERING...",
                 "Custom text displayed above the interior name (leave blank to use default 'NOW ENTERING...')"
             );
+            
+            topTextColorConfig = config.Bind(
+                "Text Appearance",
+                "TopTextColor",
+                TitleCardConstants.DefaultTopTextColor,
+                "Color of the top text in hex format (e.g., #fe6001). Leave blank to use the default orange color"
+            );
+
+            interiorTextColorConfig = config.Bind(
+                "Text Appearance",
+                "InteriorTextColor",
+                TitleCardConstants.DefaultInteriorTextColor,
+                "Color of the interior name text in hex format (e.g., #fe6001). Leave blank to use the default orange color"
+            );
 
             topTextFontWeightConfig = config.Bind(
-                "Style Settings",
+                "Text Appearance",
                 "TopTextFontWeight",
                 TitleCardConstants.DefaultFontWeightNormal,
                 "Font weight (boldness) for the top text (e.g., 400 for normal, 700 for bold)"
             );
 
             interiorTextFontWeightConfig = config.Bind(
-                "Style Settings",
+                "Text Appearance",
                 "InteriorTextFontWeight",
                 TitleCardConstants.DefaultFontWeightBold,
                 "Font weight (boldness) for the interior name text (e.g., 400 for normal, 700 for bold)"
             );
 
-            displayDurationConfig = config.Bind(
-                "Style Settings",
-                "DisplayDuration",
+            // Animation timing configs
+            topTextDisplayDurationConfig = config.Bind(
+                "Animation Timing",
+                "TopTextDisplayDuration",
                 TitleCardConstants.DefaultDisplayDuration,
-                "How long the title card displays on screen in seconds (e.g., 3.0 for 3 seconds)"
+                "How long the top text displays on screen in seconds (e.g., 3.0 for 3 seconds)"
+            );
+            
+            interiorTextDisplayDurationConfig = config.Bind(
+                "Animation Timing",
+                "InteriorTextDisplayDuration",
+                TitleCardConstants.DefaultDisplayDuration,
+                "How long the interior text displays on screen in seconds (e.g., 3.0 for 3 seconds)"
+            );
+            
+            topTextFadeInDurationConfig = config.Bind(
+                "Animation Timing",
+                "TopTextFadeInDuration",
+                TitleCardConstants.DefaultFadeDuration,
+                "How long the top text takes to fade in (e.g., 0.5 for half a second)"
+            );
+            
+            topTextFadeOutDurationConfig = config.Bind(
+                "Animation Timing",
+                "TopTextFadeOutDuration",
+                TitleCardConstants.DefaultFadeDuration,
+                "How long the top text takes to fade out (e.g., 0.5 for half a second)"
+            );
+            
+            interiorTextFadeInDurationConfig = config.Bind(
+                "Animation Timing",
+                "InteriorTextFadeInDuration",
+                TitleCardConstants.DefaultFadeDuration,
+                "How long the interior text takes to fade in (e.g., 0.5 for half a second)"
+            );
+            
+            interiorTextFadeOutDurationConfig = config.Bind(
+                "Animation Timing",
+                "InteriorTextFadeOutDuration",
+                TitleCardConstants.DefaultFadeDuration,
+                "How long the interior text takes to fade out (e.g., 0.5 for half a second)"
+            );
+            
+            // New visual effects configs
+            topTextFadeEnabledConfig = config.Bind(
+                "Visual Effects",
+                "TopTextFadeEnabled",
+                true,
+                "Enable fade in/out effect for top text"
+            );
+            
+            interiorTextFadeEnabledConfig = config.Bind(
+                "Visual Effects",
+                "InteriorTextFadeEnabled",
+                true,
+                "Enable fade in/out effect for interior text"
             );
             
             LogDebug("Starting config binding process");

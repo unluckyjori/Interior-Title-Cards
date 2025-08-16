@@ -71,6 +71,11 @@ namespace InteriorTitleCards.Components
         public const float DefaultDisplayDuration = 3f;
         
         /// <summary>
+        /// Default fade duration for text elements in seconds.
+        /// </summary>
+        public const float DefaultFadeDuration = 0.5f;
+        
+        /// <summary>
         /// Default font weight for normal text (400 = Normal).
         /// </summary>
         public const int DefaultFontWeightNormal = 400;

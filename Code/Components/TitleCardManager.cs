@@ -25,6 +25,12 @@ namespace InteriorTitleCards.Components
         private HUDManager hudManager;
         private Coroutine hideCardCoroutine;
         
+        // Fade animation coroutines
+        private Coroutine topTextFadeInCoroutine;
+        private Coroutine topTextFadeOutCoroutine;
+        private Coroutine interiorTextFadeInCoroutine;
+        private Coroutine interiorTextFadeOutCoroutine;
+        
         // Object pooling for title card objects
         private static readonly Queue<GameObject> titleCardPool = new Queue<GameObject>();
         private static readonly int MaxPoolSize = 10;
@@ -57,6 +63,22 @@ namespace InteriorTitleCards.Components
                 // Reset components
                 titleCardText = titleCardObject.GetComponentInChildren<TextMeshProUGUI>(true);
                 interiorNameText = titleCardObject.GetComponentsInChildren<TextMeshProUGUI>(true)[1];
+                
+                // Reset text colors and alpha values for fade effects
+                titleCardText.text = configManager.CustomTopText;
+                titleCardText.color = configManager.TopTextColor;
+                interiorNameText.color = configManager.InteriorTextColor;
+                
+                // Initialize text elements with transparent alpha if fade is enabled
+                if (configManager.TopTextFadeEnabled)
+                {
+                    titleCardText.color = new Color(titleCardText.color.r, titleCardText.color.g, titleCardText.color.b, 0f);
+                }
+                
+                if (configManager.InteriorTextFadeEnabled)
+                {
+                    interiorNameText.color = new Color(interiorNameText.color.r, interiorNameText.color.g, interiorNameText.color.b, 0f);
+                }
             }
             else
             {
@@ -215,14 +237,81 @@ namespace InteriorTitleCards.Components
                 hudManager.StopCoroutine(hideCardCoroutine);
                 hideCardCoroutine = null;
             }
+            
+            // Cancel any existing fade coroutines
+            if (topTextFadeInCoroutine != null)
+            {
+                hudManager.StopCoroutine(topTextFadeInCoroutine);
+                topTextFadeInCoroutine = null;
+            }
+            
+            if (interiorTextFadeInCoroutine != null)
+            {
+                hudManager.StopCoroutine(interiorTextFadeInCoroutine);
+                interiorTextFadeInCoroutine = null;
+            }
+            
+            // Start fade in animations
+            if (configManager.TopTextFadeEnabled)
+            {
+                // Set initial alpha to 0 for fade in
+                Color initialColor = titleCardText.color;
+                titleCardText.color = new Color(initialColor.r, initialColor.g, initialColor.b, 0f);
+                topTextFadeInCoroutine = hudManager.StartCoroutine(FadeInText(titleCardText, configManager.TopTextFadeInDuration));
+            }
+            
+            if (configManager.InteriorTextFadeEnabled)
+            {
+                // Set initial alpha to 0 for fade in
+                Color initialColor = interiorNameText.color;
+                interiorNameText.color = new Color(initialColor.r, initialColor.g, initialColor.b, 0f);
+                interiorTextFadeInCoroutine = hudManager.StartCoroutine(FadeInText(interiorNameText, configManager.InteriorTextFadeInDuration));
+            }
                 
             // Hide the title card after the configured duration
-            hideCardCoroutine = hudManager.StartCoroutine(HideTitleCardAfterDelay(configManager.DisplayDuration));
+            hideCardCoroutine = hudManager.StartCoroutine(HideTitleCardAfterDelay());
         }
         
-        private IEnumerator HideTitleCardAfterDelay(float delay)
+        private IEnumerator FadeInText(TextMeshProUGUI textComponent, float duration)
         {
-            yield return new WaitForSeconds(delay);
+            Color startColor = textComponent.color;
+            float elapsedTime = 0f;
+            
+            while (elapsedTime < duration)
+            {
+                elapsedTime += Time.deltaTime;
+                float alpha = Mathf.Lerp(0f, 1f, elapsedTime / duration);
+                textComponent.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
+                yield return null;
+            }
+            
+            // Set final color with full alpha
+            textComponent.color = new Color(startColor.r, startColor.g, startColor.b, 1f);
+            
+            // Clear the coroutine reference
+            if (textComponent == titleCardText)
+                topTextFadeInCoroutine = null;
+            else if (textComponent == interiorNameText)
+                interiorTextFadeInCoroutine = null;
+        }
+        
+private IEnumerator HideTitleCardAfterDelay()
+        {
+            // Start separate fade out timers for each text element based on their individual display durations
+            hudManager.StartCoroutine(HideTextElementAfterDelay(titleCardText, configManager.TopTextDisplayDuration, configManager.TopTextFadeOutDuration, configManager.TopTextFadeEnabled));
+            hudManager.StartCoroutine(HideTextElementAfterDelay(interiorNameText, configManager.InteriorTextDisplayDuration, configManager.InteriorTextFadeOutDuration, configManager.InteriorTextFadeEnabled));
+            
+            // Wait for the longer of the two display durations before hiding the entire card
+            float maxDisplayDuration = Mathf.Max(configManager.TopTextDisplayDuration, configManager.InteriorTextDisplayDuration);
+            yield return new WaitForSeconds(maxDisplayDuration);
+            
+            // Small additional delay to ensure fade out animations complete
+            float maxFadeOutDuration = Mathf.Max(configManager.TopTextFadeOutDuration, configManager.InteriorTextFadeOutDuration);
+            if (maxFadeOutDuration > 0)
+            {
+                yield return new WaitForSeconds(maxFadeOutDuration);
+            }
+            
             if (titleCardObject != null)
             {
                 titleCardObject.SetActive(false);
@@ -233,8 +322,75 @@ namespace InteriorTitleCards.Components
                     titleCardPool.Enqueue(titleCardObject);
                 }
             }
-                
+            
             hideCardCoroutine = null;
+        }
+        
+        private IEnumerator HideTextElementAfterDelay(TextMeshProUGUI textComponent, float displayDuration, float fadeOutDuration, bool fadeEnabled)
+        {
+            // Wait for the individual display duration
+            yield return new WaitForSeconds(displayDuration);
+            
+            // Start fade out animation if enabled
+            if (fadeEnabled && fadeOutDuration > 0)
+            {
+                // Stop any existing fade coroutine for this component
+                if (textComponent == titleCardText && topTextFadeOutCoroutine != null)
+                {
+                    hudManager.StopCoroutine(topTextFadeOutCoroutine);
+                }
+                else if (textComponent == interiorNameText && interiorTextFadeOutCoroutine != null)
+                {
+                    hudManager.StopCoroutine(interiorTextFadeOutCoroutine);
+                }
+                
+                // Start fade out animation and wait for it to complete
+                Coroutine fadeCoroutine = null;
+                if (textComponent == titleCardText)
+                {
+                    fadeCoroutine = hudManager.StartCoroutine(FadeOutText(titleCardText, fadeOutDuration));
+                    topTextFadeOutCoroutine = fadeCoroutine;
+                }
+                else if (textComponent == interiorNameText)
+                {
+                    fadeCoroutine = hudManager.StartCoroutine(FadeOutText(interiorNameText, fadeOutDuration));
+                    interiorTextFadeOutCoroutine = fadeCoroutine;
+                }
+                
+                // Wait for fade out to complete
+                if (fadeCoroutine != null)
+                {
+                    yield return fadeCoroutine;
+                }
+            }
+            else
+            {
+                // Immediate hide without fade
+                textComponent.color = new Color(textComponent.color.r, textComponent.color.g, textComponent.color.b, 0f);
+            }
+        }
+        
+        private IEnumerator FadeOutText(TextMeshProUGUI textComponent, float duration)
+        {
+            Color startColor = textComponent.color;
+            float elapsedTime = 0f;
+            
+            while (elapsedTime < duration)
+            {
+                elapsedTime += Time.deltaTime;
+                float alpha = Mathf.Lerp(1f, 0f, elapsedTime / duration);
+                textComponent.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
+                yield return null;
+            }
+            
+            // Set final color with zero alpha
+            textComponent.color = new Color(startColor.r, startColor.g, startColor.b, 0f);
+            
+            // Clear the coroutine reference
+            if (textComponent == titleCardText)
+                topTextFadeOutCoroutine = null;
+            else if (textComponent == interiorNameText)
+                interiorTextFadeOutCoroutine = null;
         }
     }
 }
