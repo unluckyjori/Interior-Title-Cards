@@ -2,6 +2,7 @@ using BepInEx.Logging;
 using InteriorTitleCards.Config;
 using LethalLevelLoader;
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
@@ -24,6 +25,10 @@ namespace InteriorTitleCards.Components
         private HUDManager hudManager;
         private Coroutine hideCardCoroutine;
         
+        // Object pooling for title card objects
+        private static readonly Queue<GameObject> titleCardPool = new Queue<GameObject>();
+        private static readonly int MaxPoolSize = 10;
+        
         #endregion
         
         #region Constructor
@@ -43,64 +48,77 @@ namespace InteriorTitleCards.Components
             // Cache HUDManager reference
             hudManager = HUDManager.Instance;
             
-            // Create a new GameObject for our title card
-            titleCardObject = new GameObject("InteriorTitleCard");
-            titleCardObject.transform.SetParent(hudManager.HUDContainer.transform, false);
-            
-            // Add a CanvasRenderer component
-            titleCardObject.AddComponent<CanvasRenderer>();
-            
-            // Setup main title card RectTransform
-            SetupRectTransform(
-                titleCardObject, 
-                new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.CardHeight), 
-                Vector2.zero
-            );
-            
-            // Create container for the two text lines
-            GameObject container = new GameObject("TitleCardContainer");
-            container.transform.SetParent(titleCardObject.transform, false);
-            
-            // Setup container RectTransform
-            SetupRectTransform(
-                container,
-                new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.CardHeight),
-                Vector2.zero
-            );
-            
-            // Create "NOW ENTERING..." text
-            GameObject titleTextObject = new GameObject("TitleText");
-            titleTextObject.transform.SetParent(container.transform, false);
-            
-            SetupRectTransform(
-                titleTextObject,
-                new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.TextHeight),
-                new Vector2(0f, TitleCardConstants.TopTextOffset)
-            );
-            
-            titleCardText = titleTextObject.AddComponent<TextMeshProUGUI>();
-            titleCardText.text = configManager.CustomTopText;
-            titleCardText.fontSize = TitleCardConstants.TopTextFontSize;
-            titleCardText.alignment = TextAlignmentOptions.Center;
-            titleCardText.fontStyle = (configManager.TopTextFontWeight >= TitleCardConstants.DefaultFontWeightBold) ? FontStyles.Bold : FontStyles.Normal;
-            titleCardText.enableWordWrapping = false;
-            
-            // Create interior name text
-            GameObject interiorTextObject = new GameObject("InteriorNameText");
-            interiorTextObject.transform.SetParent(container.transform, false);
-            
-            SetupRectTransform(
-                interiorTextObject,
-                new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.TextHeight),
-                new Vector2(0f, TitleCardConstants.BottomTextOffset)
-            );
-            
-            interiorNameText = interiorTextObject.AddComponent<TextMeshProUGUI>();
-            interiorNameText.text = "FACILITY";
-            interiorNameText.fontSize = TitleCardConstants.BottomTextFontSize;
-            interiorNameText.alignment = TextAlignmentOptions.Center;
-            interiorNameText.fontStyle = (configManager.InteriorTextFontWeight >= TitleCardConstants.DefaultFontWeightBold) ? FontStyles.Bold : FontStyles.Normal;
-            interiorNameText.enableWordWrapping = false;
+            // Try to get from pool first
+            if (titleCardPool.Count > 0)
+            {
+                titleCardObject = titleCardPool.Dequeue();
+                titleCardObject.SetActive(false);
+                
+                // Reset components
+                titleCardText = titleCardObject.GetComponentInChildren<TextMeshProUGUI>(true);
+                interiorNameText = titleCardObject.GetComponentsInChildren<TextMeshProUGUI>(true)[1];
+            }
+            else
+            {
+                // Create a new GameObject for our title card
+                titleCardObject = new GameObject("InteriorTitleCard");
+                titleCardObject.transform.SetParent(hudManager.HUDContainer.transform, false);
+                
+                // Add a CanvasRenderer component
+                titleCardObject.AddComponent<CanvasRenderer>();
+                
+                // Setup main title card RectTransform
+                SetupRectTransform(
+                    titleCardObject, 
+                    new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.CardHeight), 
+                    Vector2.zero
+                );
+                
+                // Create container for the two text lines
+                GameObject container = new GameObject("TitleCardContainer");
+                container.transform.SetParent(titleCardObject.transform, false);
+                
+                // Setup container RectTransform
+                SetupRectTransform(
+                    container,
+                    new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.CardHeight),
+                    Vector2.zero
+                );
+                
+                // Create "NOW ENTERING..." text
+                GameObject titleTextObject = new GameObject("TitleText");
+                titleTextObject.transform.SetParent(container.transform, false);
+                
+                SetupRectTransform(
+                    titleTextObject,
+                    new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.TextHeight),
+                    new Vector2(0f, TitleCardConstants.TopTextOffset)
+                );
+                
+                titleCardText = titleTextObject.AddComponent<TextMeshProUGUI>();
+                titleCardText.text = configManager.CustomTopText;
+                titleCardText.fontSize = TitleCardConstants.TopTextFontSize;
+                titleCardText.alignment = TextAlignmentOptions.Center;
+                titleCardText.fontStyle = (configManager.TopTextFontWeight >= TitleCardConstants.DefaultFontWeightBold) ? FontStyles.Bold : FontStyles.Normal;
+                titleCardText.enableWordWrapping = false;
+                
+                // Create interior name text
+                GameObject interiorTextObject = new GameObject("InteriorNameText");
+                interiorTextObject.transform.SetParent(container.transform, false);
+                
+                SetupRectTransform(
+                    interiorTextObject,
+                    new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.TextHeight),
+                    new Vector2(0f, TitleCardConstants.BottomTextOffset)
+                );
+                
+                interiorNameText = interiorTextObject.AddComponent<TextMeshProUGUI>();
+                interiorNameText.text = "FACILITY";
+                interiorNameText.fontSize = TitleCardConstants.BottomTextFontSize;
+                interiorNameText.alignment = TextAlignmentOptions.Center;
+                interiorNameText.fontStyle = (configManager.InteriorTextFontWeight >= TitleCardConstants.DefaultFontWeightBold) ? FontStyles.Bold : FontStyles.Normal;
+                interiorNameText.enableWordWrapping = false;
+            }
             
             // Hide the title card by default
             titleCardObject.SetActive(false);
@@ -193,17 +211,28 @@ namespace InteriorTitleCards.Components
             
             // Cancel any existing hide coroutine before starting a new one
             if (hideCardCoroutine != null)
-                hudManager?.StopCoroutine(hideCardCoroutine);
+            {
+                hudManager.StopCoroutine(hideCardCoroutine);
+                hideCardCoroutine = null;
+            }
                 
             // Hide the title card after the configured duration
-            hideCardCoroutine = hudManager?.StartCoroutine(HideTitleCardAfterDelay(configManager.DisplayDuration));
+            hideCardCoroutine = hudManager.StartCoroutine(HideTitleCardAfterDelay(configManager.DisplayDuration));
         }
         
         private IEnumerator HideTitleCardAfterDelay(float delay)
         {
             yield return new WaitForSeconds(delay);
             if (titleCardObject != null)
+            {
                 titleCardObject.SetActive(false);
+                
+                // Return to pool instead of destroying
+                if (titleCardPool.Count < MaxPoolSize)
+                {
+                    titleCardPool.Enqueue(titleCardObject);
+                }
+            }
                 
             hideCardCoroutine = null;
         }

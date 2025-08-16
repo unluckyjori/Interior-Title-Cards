@@ -33,7 +33,7 @@ namespace InteriorTitleCards.Config
         private Dictionary<string, ConfigEntry<string>> interiorNameOverrideConfigs = new Dictionary<string, ConfigEntry<string>>();
         
         // Mapping from variant names to base names for facility variants
-        private Dictionary<string, string> variantToBaseMapping = new Dictionary<string, string>
+        private static readonly Dictionary<string, string> variantToBaseMapping = new Dictionary<string, string>
         {
             { "Facility (Level1Flow)", "Facility" },
             { "Facility (Level1Flow3Exits)", "Facility" },
@@ -103,8 +103,17 @@ namespace InteriorTitleCards.Config
             plugin.StartCoroutine(InitializeConfigsDelayed());
         }
         
+        // Cache for GetInteriorNameOverride results
+        private readonly Dictionary<string, string> nameOverrideCache = new Dictionary<string, string>();
+        
         public string GetInteriorNameOverride(string dungeonName)
         {
+            // Check cache first
+            if (nameOverrideCache.TryGetValue(dungeonName, out string cachedResult))
+            {
+                return cachedResult;
+            }
+            
             LogDebug($"{nameof(GetInteriorNameOverride)} called with dungeon: {dungeonName}");
             
             // Check if this dungeon name has a base name mapping (for facility variants)
@@ -122,11 +131,15 @@ namespace InteriorTitleCards.Config
                 if (!string.IsNullOrEmpty(overrideName))
                 {
                     LogDebug($"Found override '{overrideName}' for base name '{baseName}'");
+                    // Cache the result
+                    nameOverrideCache[dungeonName] = overrideName;
                     return overrideName;
                 }
             }
             
             LogDebug($"No override found for '{baseName}', using original name");
+            // Cache the result
+            nameOverrideCache[dungeonName] = dungeonName;
             return dungeonName;
         }
         
@@ -491,9 +504,9 @@ namespace InteriorTitleCards.Config
         private IEnumerator RetryConfigGeneration(int attempt = 1)
         {
             // Implement exponential backoff
-            float delay = Mathf.Min(TitleCardConstants.ConfigRetryBaseDelay * Mathf.Pow(2, attempt - 1), TitleCardConstants.ConfigRetryMaxDelay);
+            float delay = UnityEngine.Mathf.Min(TitleCardConstants.ConfigRetryBaseDelay * UnityEngine.Mathf.Pow(2, attempt - 1), TitleCardConstants.ConfigRetryMaxDelay);
             LogDebug($"{nameof(RetryConfigGeneration)} called - retrying in {delay} seconds... (Attempt {attempt})");
-            yield return new WaitForSeconds(delay);
+            yield return new UnityEngine.WaitForSeconds(delay);
             
             if (attempt < TitleCardConstants.MaxConfigRetryAttempts)
             {
