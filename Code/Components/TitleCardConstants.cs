@@ -42,6 +42,16 @@ namespace InteriorTitleCards.Components
         #region Font Constants
         
         /// <summary>
+        /// Default font size for the top text ("NOW ENTERING...").
+        /// </summary>
+        public const int DefaultTopTextFontSize = 20;
+        
+        /// <summary>
+        /// Default font size for the interior name text.
+        /// </summary>
+        public const int DefaultBottomTextFontSize = 28;
+        
+        /// <summary>
         /// Font size for the top text ("NOW ENTERING...").
         /// </summary>
         public const int TopTextFontSize = 20;

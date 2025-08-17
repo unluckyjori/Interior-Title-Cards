@@ -69,13 +69,13 @@ namespace InteriorTitleCards.Components
                 titleCardText.color = configManager.TopTextColor;
                 interiorNameText.color = configManager.InteriorTextColor;
                 
-                // Initialize text elements with transparent alpha if fade is enabled
-                if (configManager.TopTextFadeEnabled)
+                // Initialize text elements with transparent alpha if fade is enabled or if there are start delays
+                if (configManager.TopTextFadeEnabled || configManager.TopTextStartDelay > 0)
                 {
                     titleCardText.color = new Color(titleCardText.color.r, titleCardText.color.g, titleCardText.color.b, 0f);
                 }
                 
-                if (configManager.InteriorTextFadeEnabled)
+                if (configManager.InteriorTextFadeEnabled || configManager.InteriorTextStartDelay > 0)
                 {
                     interiorNameText.color = new Color(interiorNameText.color.r, interiorNameText.color.g, interiorNameText.color.b, 0f);
                 }
@@ -119,7 +119,7 @@ namespace InteriorTitleCards.Components
                 
                 titleCardText = titleTextObject.AddComponent<TextMeshProUGUI>();
                 titleCardText.text = configManager.CustomTopText;
-                titleCardText.fontSize = TitleCardConstants.TopTextFontSize;
+                titleCardText.fontSize = configManager.TopTextFontSize;
                 titleCardText.alignment = TextAlignmentOptions.Center;
                 titleCardText.fontStyle = (configManager.TopTextFontWeight >= TitleCardConstants.DefaultFontWeightBold) ? FontStyles.Bold : FontStyles.Normal;
                 titleCardText.enableWordWrapping = false;
@@ -136,7 +136,7 @@ namespace InteriorTitleCards.Components
                 
                 interiorNameText = interiorTextObject.AddComponent<TextMeshProUGUI>();
                 interiorNameText.text = "FACILITY";
-                interiorNameText.fontSize = TitleCardConstants.BottomTextFontSize;
+                interiorNameText.fontSize = configManager.InteriorTextFontSize;
                 interiorNameText.alignment = TextAlignmentOptions.Center;
                 interiorNameText.fontStyle = (configManager.InteriorTextFontWeight >= TitleCardConstants.DefaultFontWeightBold) ? FontStyles.Bold : FontStyles.Normal;
                 interiorNameText.enableWordWrapping = false;
@@ -251,13 +251,25 @@ namespace InteriorTitleCards.Components
                 interiorTextFadeInCoroutine = null;
             }
             
-            // Start fade in animations
+            // Start fade in animations with delays
             if (configManager.TopTextFadeEnabled)
             {
                 // Set initial alpha to 0 for fade in
                 Color initialColor = titleCardText.color;
                 titleCardText.color = new Color(initialColor.r, initialColor.g, initialColor.b, 0f);
-                topTextFadeInCoroutine = hudManager.StartCoroutine(FadeInText(titleCardText, configManager.TopTextFadeInDuration));
+                topTextFadeInCoroutine = hudManager.StartCoroutine(DelayedFadeInText(titleCardText, configManager.TopTextStartDelay, configManager.TopTextFadeInDuration));
+            }
+            else
+            {
+                // For non-fade text, we need to hide it initially if there's a delay, or show it immediately
+                if (configManager.TopTextStartDelay > 0)
+                {
+                    // Set initial alpha to 0 for delayed show
+                    Color initialColor = titleCardText.color;
+                    titleCardText.color = new Color(initialColor.r, initialColor.g, initialColor.b, 0f);
+                    topTextFadeInCoroutine = hudManager.StartCoroutine(DelayedShowText(titleCardText, configManager.TopTextStartDelay));
+                }
+                // If no delay and no fade, text is already visible at full alpha
             }
             
             if (configManager.InteriorTextFadeEnabled)
@@ -265,7 +277,19 @@ namespace InteriorTitleCards.Components
                 // Set initial alpha to 0 for fade in
                 Color initialColor = interiorNameText.color;
                 interiorNameText.color = new Color(initialColor.r, initialColor.g, initialColor.b, 0f);
-                interiorTextFadeInCoroutine = hudManager.StartCoroutine(FadeInText(interiorNameText, configManager.InteriorTextFadeInDuration));
+                interiorTextFadeInCoroutine = hudManager.StartCoroutine(DelayedFadeInText(interiorNameText, configManager.InteriorTextStartDelay, configManager.InteriorTextFadeInDuration));
+            }
+            else
+            {
+                // For non-fade text, we need to hide it initially if there's a delay, or show it immediately
+                if (configManager.InteriorTextStartDelay > 0)
+                {
+                    // Set initial alpha to 0 for delayed show
+                    Color initialColor = interiorNameText.color;
+                    interiorNameText.color = new Color(initialColor.r, initialColor.g, initialColor.b, 0f);
+                    interiorTextFadeInCoroutine = hudManager.StartCoroutine(DelayedShowText(interiorNameText, configManager.InteriorTextStartDelay));
+                }
+                // If no delay and no fade, text is already visible at full alpha
             }
                 
             // Hide the title card after the configured duration
@@ -391,6 +415,55 @@ private IEnumerator HideTitleCardAfterDelay()
                 topTextFadeOutCoroutine = null;
             else if (textComponent == interiorNameText)
                 interiorTextFadeOutCoroutine = null;
+        }
+        
+        private IEnumerator DelayedFadeInText(TextMeshProUGUI textComponent, float delay, float duration)
+        {
+            // Wait for the specified delay
+            if (delay > 0)
+            {
+                yield return new WaitForSeconds(delay);
+            }
+            
+            // Then start the fade in animation
+            Color startColor = textComponent.color;
+            float elapsedTime = 0f;
+            
+            while (elapsedTime < duration)
+            {
+                elapsedTime += Time.deltaTime;
+                float alpha = Mathf.Lerp(0f, 1f, elapsedTime / duration);
+                textComponent.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
+                yield return null;
+            }
+            
+            // Set final color with full alpha
+            textComponent.color = new Color(startColor.r, startColor.g, startColor.b, 1f);
+            
+            // Clear the coroutine reference
+            if (textComponent == titleCardText)
+                topTextFadeInCoroutine = null;
+            else if (textComponent == interiorNameText)
+                interiorTextFadeInCoroutine = null;
+        }
+        
+        private IEnumerator DelayedShowText(TextMeshProUGUI textComponent, float delay)
+        {
+            // Wait for the specified delay
+            if (delay > 0)
+            {
+                yield return new WaitForSeconds(delay);
+            }
+            
+            // Then show the text with full alpha
+            Color color = textComponent.color;
+            textComponent.color = new Color(color.r, color.g, color.b, 1f);
+            
+            // Clear the coroutine reference
+            if (textComponent == titleCardText)
+                topTextFadeInCoroutine = null;
+            else if (textComponent == interiorNameText)
+                interiorTextFadeInCoroutine = null;
         }
     }
 }

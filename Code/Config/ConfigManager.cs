@@ -27,6 +27,8 @@ namespace InteriorTitleCards.Config
         private ConfigEntry<string> interiorTextColorConfig;
         private ConfigEntry<bool> debugLoggingConfig;
         private ConfigEntry<string> customTopTextConfig;
+        private ConfigEntry<int> topTextFontSizeConfig;
+        private ConfigEntry<int> interiorTextFontSizeConfig;
         private ConfigEntry<int> topTextFontWeightConfig;
         private ConfigEntry<int> interiorTextFontWeightConfig;
 // Animation timing configs
@@ -36,6 +38,10 @@ namespace InteriorTitleCards.Config
         private ConfigEntry<float> topTextFadeOutDurationConfig;
         private ConfigEntry<float> interiorTextFadeInDurationConfig;
         private ConfigEntry<float> interiorTextFadeOutDurationConfig;
+        
+        // Delay configs
+        private ConfigEntry<float> topTextStartDelayConfig;
+        private ConfigEntry<float> interiorTextStartDelayConfig;
         
         // New visual effects configs
         private ConfigEntry<bool> topTextFadeEnabledConfig;
@@ -88,6 +94,8 @@ namespace InteriorTitleCards.Config
         
         public bool DebugLoggingEnabled => debugLoggingConfig?.Value ?? false;
         public string CustomTopText => customTopTextConfig?.Value ?? "NOW ENTERING...";
+        public int TopTextFontSize => topTextFontSizeConfig?.Value ?? TitleCardConstants.DefaultTopTextFontSize;
+        public int InteriorTextFontSize => interiorTextFontSizeConfig?.Value ?? TitleCardConstants.DefaultBottomTextFontSize;
         public int TopTextFontWeight => topTextFontWeightConfig?.Value ?? TitleCardConstants.DefaultFontWeightNormal;
         public int InteriorTextFontWeight => interiorTextFontWeightConfig?.Value ?? TitleCardConstants.DefaultFontWeightBold;
 // Animation timing properties
@@ -97,6 +105,10 @@ namespace InteriorTitleCards.Config
         public float TopTextFadeOutDuration => topTextFadeOutDurationConfig?.Value ?? TitleCardConstants.DefaultFadeDuration;
         public float InteriorTextFadeInDuration => interiorTextFadeInDurationConfig?.Value ?? TitleCardConstants.DefaultFadeDuration;
         public float InteriorTextFadeOutDuration => interiorTextFadeOutDurationConfig?.Value ?? TitleCardConstants.DefaultFadeDuration;
+        
+        // Delay properties
+        public float TopTextStartDelay => topTextStartDelayConfig?.Value ?? 0f;
+        public float InteriorTextStartDelay => interiorTextStartDelayConfig?.Value ?? 0f;
         
         // New visual effects properties
         public bool TopTextFadeEnabled => topTextFadeEnabledConfig?.Value ?? true;
@@ -234,6 +246,20 @@ namespace InteriorTitleCards.Config
                 "Custom text displayed above the interior name (leave blank to use default 'NOW ENTERING...')"
             );
             
+            topTextFontSizeConfig = config.Bind(
+                "Text Appearance",
+                "TopTextFontSize",
+                TitleCardConstants.DefaultTopTextFontSize,
+                "Font size for the top text (e.g., 20 for default size)"
+            );
+            
+            interiorTextFontSizeConfig = config.Bind(
+                "Text Appearance",
+                "InteriorTextFontSize",
+                TitleCardConstants.DefaultBottomTextFontSize,
+                "Font size for the interior name text (e.g., 28 for default size)"
+            );
+            
             topTextColorConfig = config.Bind(
                 "Text Appearance",
                 "TopTextColor",
@@ -318,6 +344,21 @@ namespace InteriorTitleCards.Config
                 "InteriorTextFadeEnabled",
                 true,
                 "Enable fade in/out effect for interior text"
+            );
+            
+            // Delay configs
+            topTextStartDelayConfig = config.Bind(
+                "Animation Timing",
+                "TopTextStartDelay",
+                0f,
+                "Delay in seconds before the top text starts displaying after entering (e.g., 1.0 for 1 second)"
+            );
+            
+            interiorTextStartDelayConfig = config.Bind(
+                "Animation Timing",
+                "InteriorTextStartDelay",
+                0f,
+                "Delay in seconds before the interior text starts displaying after entering (e.g., 1.0 for 1 second)"
             );
             
             LogDebug("Starting config binding process");
