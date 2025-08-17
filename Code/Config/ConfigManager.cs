@@ -31,6 +31,8 @@ namespace InteriorTitleCards.Config
         private ConfigEntry<int> interiorTextFontSizeConfig;
         private ConfigEntry<int> topTextFontWeightConfig;
         private ConfigEntry<int> interiorTextFontWeightConfig;
+        private ConfigEntry<string> topTextPositionConfig;
+        private ConfigEntry<string> interiorTextPositionConfig;
 // Animation timing configs
         private ConfigEntry<float> topTextDisplayDurationConfig;
         private ConfigEntry<float> interiorTextDisplayDurationConfig;
@@ -98,6 +100,42 @@ namespace InteriorTitleCards.Config
         public int InteriorTextFontSize => interiorTextFontSizeConfig?.Value ?? TitleCardConstants.DefaultBottomTextFontSize;
         public int TopTextFontWeight => topTextFontWeightConfig?.Value ?? TitleCardConstants.DefaultFontWeightNormal;
         public int InteriorTextFontWeight => interiorTextFontWeightConfig?.Value ?? TitleCardConstants.DefaultFontWeightBold;
+        
+        public Vector2 TopTextPosition
+        {
+            get
+            {
+                if (topTextPositionConfig?.Value != null)
+                {
+                    string[] parts = topTextPositionConfig.Value.Split(',');
+                    if (parts.Length == 2 && 
+                        float.TryParse(parts[0], out float x) && 
+                        float.TryParse(parts[1], out float y))
+                    {
+                        return new Vector2(x, y);
+                    }
+                }
+                return TitleCardConstants.DefaultTopTextPosition;
+            }
+        }
+        
+        public Vector2 InteriorTextPosition
+        {
+            get
+            {
+                if (interiorTextPositionConfig?.Value != null)
+                {
+                    string[] parts = interiorTextPositionConfig.Value.Split(',');
+                    if (parts.Length == 2 && 
+                        float.TryParse(parts[0], out float x) && 
+                        float.TryParse(parts[1], out float y))
+                    {
+                        return new Vector2(x, y);
+                    }
+                }
+                return TitleCardConstants.DefaultInteriorTextPosition;
+            }
+        }
 // Animation timing properties
         public float TopTextDisplayDuration => topTextDisplayDurationConfig?.Value ?? TitleCardConstants.DefaultDisplayDuration;
         public float InteriorTextDisplayDuration => interiorTextDisplayDurationConfig?.Value ?? TitleCardConstants.DefaultDisplayDuration;
@@ -286,6 +324,20 @@ namespace InteriorTitleCards.Config
                 "InteriorTextFontWeight",
                 TitleCardConstants.DefaultFontWeightBold,
                 "Font weight (boldness) for the interior name text (e.g., 400 for normal, 700 for bold)"
+            );
+            
+            topTextPositionConfig = config.Bind(
+                "Text Appearance",
+                "TopTextPosition",
+                $"{TitleCardConstants.DefaultTopTextPosition.x},{TitleCardConstants.DefaultTopTextPosition.y}",
+                "Position of the top text as X,Y coordinates (e.g., 0,20). Default is centered horizontally with vertical offset."
+            );
+            
+            interiorTextPositionConfig = config.Bind(
+                "Text Appearance",
+                "InteriorTextPosition",
+                $"{TitleCardConstants.DefaultInteriorTextPosition.x},{TitleCardConstants.DefaultInteriorTextPosition.y}",
+                "Position of the interior text as X,Y coordinates (e.g., 0,-20). Default is centered horizontally with vertical offset."
             );
 
             // Animation timing configs

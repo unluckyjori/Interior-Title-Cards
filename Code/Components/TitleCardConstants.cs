@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace InteriorTitleCards.Components
 {
     /// <summary>
@@ -36,6 +38,16 @@ namespace InteriorTitleCards.Components
         /// Center anchor value for RectTransform positioning.
         /// </summary>
         public const float CenterAnchor = 0.5f;
+        
+        /// <summary>
+        /// Default position for the top text.
+        /// </summary>
+        public static readonly Vector2 DefaultTopTextPosition = new Vector2(0f, 20f);
+        
+        /// <summary>
+        /// Default position for the interior text.
+        /// </summary>
+        public static readonly Vector2 DefaultInteriorTextPosition = new Vector2(0f, -20f);
         
         #endregion
 

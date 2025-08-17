@@ -114,7 +114,7 @@ namespace InteriorTitleCards.Components
                 SetupRectTransform(
                     titleTextObject,
                     new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.TextHeight),
-                    new Vector2(0f, TitleCardConstants.TopTextOffset)
+                    configManager.TopTextPosition
                 );
                 
                 titleCardText = titleTextObject.AddComponent<TextMeshProUGUI>();
@@ -131,7 +131,7 @@ namespace InteriorTitleCards.Components
                 SetupRectTransform(
                     interiorTextObject,
                     new Vector2(TitleCardConstants.CardWidth, TitleCardConstants.TextHeight),
-                    new Vector2(0f, TitleCardConstants.BottomTextOffset)
+                    configManager.InteriorTextPosition
                 );
                 
                 interiorNameText = interiorTextObject.AddComponent<TextMeshProUGUI>();
