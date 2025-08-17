@@ -7,16 +7,38 @@ This mod displays a title card when players enter the facility interior area in 
 - Displays a title card when entering the facility ("Entering FACILITY")
 - Automatically disappears after 3 seconds
 
+![Image](https://i.imgur.com/HbUlh2O.jpeg)
+
 ## Customization
 
-- **Top text color**: Choose the color of the top text.
-- **Interior text color**: Choose the color of the interior text.
-- **Display duration**: How long the title card displays on screen in seconds.
-- **Top text override**: Change the top line of the title card (default is `NOW ENTERING...`).
-- **Top text font weight**: Adjust the thickness of the top text.
-- **Interior text font weight**: Adjust the thickness of the interior name text.
-- **Interior Name Overrides**: Replace default facility names with custom ones.
-- **Enable debug logging**: Turn on detailed logs for testing and troubleshooting.
+### Debug Settings
+- **EnableDebugLogging**: Enable detailed debug logging for troubleshooting.  
+
+### Animation Timing
+- **TopTextDisplayDuration**: How long the top text displays on screen in seconds.  
+- **InteriorTextDisplayDuration**: How long the interior text displays on screen in seconds.  
+- **TopTextFadeInDuration**: How long the top text takes to fade in.  
+- **TopTextFadeOutDuration**: How long the top text takes to fade out.  
+- **InteriorTextFadeInDuration**: How long the interior text takes to fade in.  
+- **InteriorTextFadeOutDuration**: How long the interior text takes to fade out.  
+- **TopTextStartDelay**: Delay in seconds before the top text starts displaying after entering.  
+- **InteriorTextStartDelay**: Delay in seconds before the interior text starts displaying after entering.
+
+### Interior Name Overrides
+- **Interior Name**: Override the interior name
+
+### Text Appearance
+- **Top text override**: Custom text displayed above the interior name.  
+- **TopTextFontSize**: Font size for the top text.  
+- **InteriorTextFontSize**: Font size for the interior name text.  
+- **TopTextColor**: Color of the top text in hex format.  
+- **InteriorTextColor**: Color of the interior name text in hex format.  
+- **TopTextFontWeight**: Font weight for the top text.  
+- **InteriorTextFontWeight**: Font weight for the interior name text.  
+
+### Visual Effects
+- **TopTextFadeEnabled**: Enable fade in/out effect for top text.  
+- **InteriorTextFadeEnabled**: Enable fade in/out effect for interior text.  
 
 ## Roadmap
 
