@@ -34,7 +34,9 @@ This mod displays a title card when players enter the facility interior area in 
 - **TopTextColor**: Color of the top text in hex format.  
 - **InteriorTextColor**: Color of the interior name text in hex format.  
 - **TopTextFontWeight**: Font weight for the top text.  
-- **InteriorTextFontWeight**: Font weight for the interior name text.  
+- **InteriorTextFontWeight**: Font weight for the interior name text.
+- **TopTextPosition**: Position of the interior text as X,Y coordinates.
+- **InteriorTextPosition**: Position of the interior text as X,Y coordinates.
 
 ### Visual Effects
 - **TopTextFadeEnabled**: Enable fade in/out effect for top text.  
