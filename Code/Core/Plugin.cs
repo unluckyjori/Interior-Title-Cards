@@ -1,8 +1,9 @@
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
-using InteriorTitleCards.Components;
-using InteriorTitleCards.Config;
+using InteriorTitleCards.Core;
+using InteriorTitleCards.Managers;
+using InteriorTitleCards.Utils;
 
 namespace InteriorTitleCards
 {
@@ -26,18 +27,22 @@ namespace InteriorTitleCards
         {
             Instance = this;
             Log = Logger;
-            Log.LogInfo("Initializing Interior Title Cards plugin");
+            InteriorTitleCards.Core.Logger.Initialize(Log);
+            InteriorTitleCards.Core.Logger.LogInfo("Initializing Interior Title Cards plugin");
 
             // Initialize configuration manager
             configManager = new ConfigManager(Config, Log, this);
-            
+
             // Initialize title card manager
             titleCardManager = new TitleCardManager(Log, configManager);
+
+            // Set up callback to re-initialize blacklist after configs are bound
+            configManager.SetOnConfigsBoundCallback(() => titleCardManager.ReInitializeBlacklist());
 
             // Apply Harmony patches
             _harmony = new Harmony(TitleCardConstants.PluginGuid);
             _harmony.PatchAll();
-            Log.LogInfo("Harmony patches applied");
+            Logger.LogInfo("Harmony patches applied");
         }
         
         private void Start()
@@ -50,6 +55,9 @@ namespace InteriorTitleCards
         
         #region Internal Methods
         
+        /// <summary>
+        /// Initializes the title card when the player enters the facility.
+        /// </summary>
         internal void InitializeTitleCard()
         {
             titleCardManager?.CreateTitleCard();
@@ -71,5 +79,11 @@ namespace InteriorTitleCards
         }
         
         #endregion
+
+        private void OnDestroy()
+        {
+            // Clean up resources
+            titleCardManager?.Cleanup();
+        }
     }
 }

@@ -12,8 +12,30 @@ namespace InteriorTitleCards.Patches
         [HarmonyPatch("Awake")]
         public static void HUDManagerAwakePostfix(HUDManager __instance)
         {
-            Plugin.Log.LogInfo("Initializing Interior Title Card Mod.");
-            Plugin.Instance?.InitializeTitleCard();
+            try
+            {
+                // Validate instance
+                if (__instance == null)
+                {
+                    Plugin.Log.LogWarning("HUDManager instance is null in HUDManagerAwakePostfix");
+                    return;
+                }
+
+                Plugin.Log.LogInfo("Initializing Interior Title Card Mod.");
+
+                if (Plugin.Instance != null)
+                {
+                    Plugin.Instance.InitializeTitleCard();
+                }
+                else
+                {
+                    Plugin.Log.LogWarning("Plugin instance is null in HUDManagerAwakePostfix");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Plugin.Log.LogError($"Error in HUDManagerAwakePostfix: {ex.Message}");
+            }
         }
     }
 }

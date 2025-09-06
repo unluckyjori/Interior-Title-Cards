@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace InteriorTitleCards.Components
+namespace InteriorTitleCards.Utils
 {
     /// <summary>
     /// Constants used throughout the Interior Title Cards mod to eliminate magic numbers and strings.
@@ -44,12 +44,27 @@ namespace InteriorTitleCards.Components
         /// </summary>
         public static readonly Vector2 DefaultTopTextPosition = new Vector2(0f, 20f);
         
-        /// <summary>
-        /// Default position for the interior text.
-        /// </summary>
-        public static readonly Vector2 DefaultInteriorTextPosition = new Vector2(0f, -20f);
-        
-        #endregion
+         /// <summary>
+         /// Default position for the interior text.
+         /// </summary>
+         public static readonly Vector2 DefaultInteriorTextPosition = new Vector2(0f, -20f);
+
+         /// <summary>
+         /// Default position for top images (matches text for backward compatibility).
+         /// </summary>
+         public static readonly Vector2 DefaultTopImagePosition = new Vector2(0f, 20f);
+
+         /// <summary>
+         /// Default position for interior images (matches text for backward compatibility).
+         /// </summary>
+         public static readonly Vector2 DefaultInteriorImagePosition = new Vector2(0f, -20f);
+
+         /// <summary>
+         /// Default position for combined images (center screen).
+         /// </summary>
+         public static readonly Vector2 DefaultCombinedImagePosition = new Vector2(0f, 0f);
+
+         #endregion
 
         #region Font Constants
         
