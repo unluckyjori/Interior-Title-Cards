@@ -752,39 +752,44 @@ namespace InteriorTitleCards.Managers
             int sourceMode = configManager.ImageSourceMode;
             configManager.LogDebug($"Image source mode: {sourceMode}");
 
-            // Handle different source modes with proper priority
-            switch (sourceMode)
-            {
-                case 0: // DeveloperOnly
-                    return TryLoadImage(dungeonName, imageType, true);
+			// Handle different source modes with proper priority
+			Sprite resolvedSprite = null;
 
-                case 1: // UserOnly
-                    return TryLoadImage(dungeonName, imageType, false);
+			switch (sourceMode)
+			{
+				case 0: // DeveloperOnly
+					resolvedSprite = TryLoadImage(dungeonName, imageType, true);
+					break;
 
-                case 2: // BothDeveloperPriority
-                    // Try developer first, then user
-                    Sprite devSprite = TryLoadImage(dungeonName, imageType, true);
-                    if (devSprite != null)
-                        return devSprite;
-                    return TryLoadImage(dungeonName, imageType, false);
+				case 1: // UserOnly
+					resolvedSprite = TryLoadImage(dungeonName, imageType, false);
+					break;
 
-                case 3: // BothUserPriority
-                    // Try user first, then developer
-                    Sprite userSprite = TryLoadImage(dungeonName, imageType, false);
-                    if (userSprite != null)
-                        return userSprite;
-                    return TryLoadImage(dungeonName, imageType, true);
+				case 2: // BothDeveloperPriority
+					// Try developer first, then user
+					resolvedSprite = TryLoadImage(dungeonName, imageType, true)
+						?? TryLoadImage(dungeonName, imageType, false);
+					break;
 
-                default:
-                    configManager.LogDebug($"Invalid source mode: {sourceMode}, defaulting to developer priority");
-                    Sprite defaultDevSprite = TryLoadImage(dungeonName, imageType, true);
-                    if (defaultDevSprite != null)
-                        return defaultDevSprite;
-                    return TryLoadImage(dungeonName, imageType, false);
-            }
-            
-            configManager.LogDebug("No valid image found, returning null");
-            return null;
+				case 3: // BothUserPriority
+					// Try user first, then developer
+					resolvedSprite = TryLoadImage(dungeonName, imageType, false)
+						?? TryLoadImage(dungeonName, imageType, true);
+					break;
+
+				default:
+					configManager.LogDebug($"Invalid source mode: {sourceMode}, defaulting to developer priority");
+					resolvedSprite = TryLoadImage(dungeonName, imageType, true)
+						?? TryLoadImage(dungeonName, imageType, false);
+					break;
+			}
+
+			if (resolvedSprite == null)
+			{
+				configManager.LogDebug("No valid image found, returning null");
+			}
+
+			return resolvedSprite;
         }
         
         /// <summary>
